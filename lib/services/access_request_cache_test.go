@@ -166,11 +166,39 @@ func TestAccessRequestCacheBasics(t *testing.T) {
 				"00000000-0000-0000-0000-000000000002", // approved
 			},
 		},
+		{
+			Sort:       proto.AccessRequestSort_USER,
+			Descending: true,
+			Expect: []string{
+				"00000000-0000-0000-0000-000000000005", // bob
+				"00000000-0000-0000-0000-000000000004", // alice
+				"00000000-0000-0000-0000-000000000003", // alice
+				"00000000-0000-0000-0000-000000000002", // alice
+				"00000000-0000-0000-0000-000000000001", // alice
+			},
+		},
+		{
+			Sort:       proto.AccessRequestSort_USER,
+			Descending: false,
+			Expect: []string{
+				"00000000-0000-0000-0000-000000000001", // alice
+				"00000000-0000-0000-0000-000000000002", // alice
+				"00000000-0000-0000-0000-000000000003", // alice
+				"00000000-0000-0000-0000-000000000004", // alice
+				"00000000-0000-0000-0000-000000000005", // bob
+			},
+		},
 	}
 
 	created := time.Now()
-	for _, rr := range rrs {
-		r, err := types.NewAccessRequest(rr.id, "alice@example.com", "some-role")
+	for i, rr := range rrs {
+		var err error
+		var r types.AccessRequest
+		if i == 0 {
+			r, err = types.NewAccessRequest(rr.id, "bob@example.com", "some-role")
+		} else {
+			r, err = types.NewAccessRequest(rr.id, "alice@example.com", "some-role")
+		}
 		require.NoError(t, err)
 		require.NoError(t, r.SetState(rr.state))
 		r.SetCreationTime(created.UTC())
