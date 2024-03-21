@@ -779,6 +779,15 @@ func (f *AccessRequestFilter) FromMap(m map[string]string) error {
 	return nil
 }
 
+func hasReviewed(req AccessRequest, author string) bool {
+	reviews := req.GetReviews()
+	var reviewers []string
+	for _, review := range reviews {
+		reviewers = append(reviewers, review.Author)
+	}
+	return slices.Contains(reviewers, author)
+}
+
 // Match checks if a given access request matches this filter.
 func (f *AccessRequestFilter) Match(req AccessRequest) bool {
 	// only return if the request was made by the api requester
@@ -786,17 +795,24 @@ func (f *AccessRequestFilter) Match(req AccessRequest) bool {
 		return false
 	}
 	// a user cannot review their own requests
-	if f.Scope == AccessRequestScope_NEEDS_REVIEW && req.GetUser() == f.Requester {
-		return req.GetState() == RequestState_PENDING
+	if f.Scope == AccessRequestScope_NEEDS_REVIEW {
+		if req.GetUser() == f.Requester {
+			return false
+		}
+		if req.GetState() != RequestState_PENDING {
+			return false
+		}
+		if hasReviewed(req, f.Requester) {
+			return false
+		}
 	}
 	// only match if the api requester has submit a review
-	if f.Scope == AccessRequestScope_REVIEWED && req.GetUser() != f.Requester {
-		reviews := req.GetReviews()
-		var reviewers []string
-		for _, review := range reviews {
-			reviewers = append(reviewers, review.Author)
+	if f.Scope == AccessRequestScope_REVIEWED {
+		// users cant review their own requests so we can early return
+		if req.GetUser() == f.Requester {
+			return false
 		}
-		if !slices.Contains(reviewers, f.Requester) {
+		if !hasReviewed(req, f.Requester) {
 			return false
 		}
 	}
