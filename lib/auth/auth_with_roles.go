@@ -2452,7 +2452,8 @@ func (a *ServerWithRoles) ListAccessRequests(ctx context.Context, req *proto.Lis
 	if req.Filter == nil {
 		req.Filter = &types.AccessRequestFilter{}
 	}
-	// set the requesting user to be used in the filter match
+	// set the requesting user to be used in the filter match. This is only meant to be set here
+	// and will be overwritten if set elsewhere
 	req.Filter.Requester = a.context.User.GetName()
 
 	if err := a.action(apidefaults.Namespace, types.KindAccessRequest, types.VerbList, types.VerbRead); err != nil {

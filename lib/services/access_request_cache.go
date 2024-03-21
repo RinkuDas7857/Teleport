@@ -43,7 +43,7 @@ const (
 	accessRequestCreated = "Created"
 	// accessRequestState is the name of the sort index used for sorting requests by their current state (pending, approved, etc).
 	accessRequestState = "State"
-	// accessRequestuser is the name of the sort index used for sorting requests by the person who created the request.
+	// accessRequestUser is the name of the sort index used for sorting requests by the person who created the request.
 	accessRequestUser = "User"
 )
 

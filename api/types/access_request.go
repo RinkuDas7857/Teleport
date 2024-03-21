@@ -787,10 +787,10 @@ func (f *AccessRequestFilter) Match(req AccessRequest) bool {
 	}
 	// a user cannot review their own requests
 	if f.Scope == AccessRequestScope_NEEDS_REVIEW && req.GetUser() == f.Requester {
-		return false
+		return req.GetState() == RequestState_PENDING
 	}
 	// only match if the api requester has submit a review
-	if f.Scope == AccessRequestScope_REVIEWED {
+	if f.Scope == AccessRequestScope_REVIEWED && req.GetUser() != f.Requester {
 		reviews := req.GetReviews()
 		var reviewers []string
 		for _, review := range reviews {
