@@ -20,6 +20,7 @@ package opsgenie
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"time"
 
@@ -70,6 +71,7 @@ func (b *Bot) BroadcastAccessRequestMessage(ctx context.Context, recipientSchedu
 		autoApprovalSchedules = annotationAutoApprovalSchedules
 	}
 	if len(autoApprovalSchedules) == 0 {
+		fmt.Println("using default", b.client.DefaultSchedules)
 		autoApprovalSchedules = append(autoApprovalSchedules, b.client.DefaultSchedules...)
 	}
 	opsgenieReqData := RequestData{
@@ -83,8 +85,8 @@ func (b *Bot) BroadcastAccessRequestMessage(ctx context.Context, recipientSchedu
 			Reason: reqData.ResolutionReason,
 		},
 		SystemAnnotations: types.Labels{
-			types.TeleportNamespace + types.ReqAnnotationApproveSchedulesLabel:      autoApprovalSchedules,
-			types.TeleportNamespace + types.ReqAnnotationNotifySchedulesLabel: notificationSchedules,
+			types.TeleportNamespace + types.ReqAnnotationApproveSchedulesLabel: autoApprovalSchedules,
+			types.TeleportNamespace + types.ReqAnnotationNotifySchedulesLabel:  notificationSchedules,
 		},
 	}
 	opsgenieData, err := b.client.CreateAlert(ctx, reqID, opsgenieReqData)
