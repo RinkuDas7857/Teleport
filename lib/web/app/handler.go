@@ -29,6 +29,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strings"
 
 	"github.com/gravitational/trace"
 	"github.com/jonboulle/clockwork"
@@ -39,8 +40,10 @@ import (
 	"github.com/gravitational/teleport/api/types"
 	apievents "github.com/gravitational/teleport/api/types/events"
 	"github.com/gravitational/teleport/lib/auth"
+	"github.com/gravitational/teleport/lib/defaults"
 	"github.com/gravitational/teleport/lib/events"
 	"github.com/gravitational/teleport/lib/httplib/reverseproxy"
+	"github.com/gravitational/teleport/lib/jwt"
 	"github.com/gravitational/teleport/lib/reversetunnelclient"
 	"github.com/gravitational/teleport/lib/tlsca"
 	"github.com/gravitational/teleport/lib/utils"
@@ -427,6 +430,57 @@ func (h *Handler) getAppSessionFromCert(r *http.Request) (types.WebSession, erro
 		})
 		return nil, err
 	}
+
+	token := r.Header.Get("Authorization")
+	if token != "" {
+		before, after, found := strings.Cut(token, " ")
+		if !found {
+			return nil, trace.BadParameter("Unable to parse auth header")
+		}
+		if before != "Bearer" {
+			return nil, trace.BadParameter("Unable to parse auth header")
+		}
+
+		// Create a new key that can sign and verify tokens.
+		clientJWT, err := jwt.New(&jwt.Config{
+			Clock:       h.c.Clock,
+			PublicKey:   r.TLS.PeerCertificates[0].PublicKey,
+			Algorithm:   defaults.ApplicationTokenAlgorithm,
+			ClusterName: types.TeleportAzureMSIEndpoint,
+		})
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		claims, err := clientJWT.VerifyAzureToken(after)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		wsPrivateKey, err := utils.ParsePrivateKey(ws.GetPriv())
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		wsJWT, err := jwt.New(&jwt.Config{
+			Clock:       h.c.Clock,
+			PrivateKey:  wsPrivateKey,
+			Algorithm:   defaults.ApplicationTokenAlgorithm,
+			ClusterName: types.TeleportAzureMSIEndpoint,
+		})
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		token, err := wsJWT.SignAzureToken(*claims)
+		if err != nil {
+			return nil, trace.Wrap(err)
+		}
+
+		// Set new authorization
+		r.Header.Set("Authorization", "Bearer "+token)
+	}
+
 	return ws, nil
 }
 
