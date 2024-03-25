@@ -3,7 +3,7 @@ module github.com/gravitational/teleport/api
 go 1.18
 
 require (
-	github.com/go-piv/piv-go v1.10.0
+	github.com/go-piv/piv-go v1.11.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/go-cmp v0.5.9
 	github.com/gravitational/trace v1.1.19
